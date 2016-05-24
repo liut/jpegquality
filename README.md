@@ -1,4 +1,4 @@
-# Read JPEG quality from bytes
+# Read JPEG quality from bytes or os.File
 
 Inpiration from [Estimating Quality](http://fotoforensics.com/tutorial-estq.php)
 
