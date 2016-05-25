@@ -24,6 +24,10 @@ func NewWithBytes(buf []byte) (jr *jpegReader, err error) {
 
 func New(rs io.ReadSeeker) (jr *jpegReader, err error) {
 	jr = &jpegReader{rs: rs}
+	_, err = jr.rs.Seek(0, 0)
+	if err != nil {
+		return
+	}
 
 	var (
 		sign = make([]byte, 2)
