@@ -23,3 +23,10 @@ Inpiration from [Estimating Quality](http://fotoforensics.com/tutorial-estq.php)
 ```sh
 go get github.com/liut/jpegquality/cmd/jpegq
 ```
+
+## logger
+```go
+
+jpegquality.SetLogger(log.New(os.Stderr, "jpegq", log.LstdFlags|log.Lshortfile))
+
+```
