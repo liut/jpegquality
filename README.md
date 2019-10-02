@@ -3,7 +3,7 @@
 Inpiration from [Estimating Quality](http://fotoforensics.com/tutorial-estq.php)
 
 
-## usage:
+## code usage:
 
 ````go
 
@@ -17,3 +17,9 @@ Inpiration from [Estimating Quality](http://fotoforensics.com/tutorial-estq.php)
 	}
 	log.Printf("jpeg quality %d", j.Quality())
 ````
+
+## cli tool
+
+```sh
+go get github.com/liut/jpegquality/cmd/jpegq
+```

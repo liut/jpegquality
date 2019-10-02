@@ -38,6 +38,7 @@ func New(rs io.ReadSeeker) (jr *jpegReader, err error) {
 	}
 	if sign[0] != 0xff && sign[1] != 0xd8 {
 		err = ErrInvalidJPEG
+		return
 	}
 
 	var q int
@@ -86,7 +87,7 @@ func (this *jpegReader) readQuality() (q int, err error) {
 			return
 		}
 
-		log.Printf("length %d", length)
+		log.Printf("table length %d", length)
 		log.Print("Quantization table")
 
 		var tabuf = make([]byte, length)
