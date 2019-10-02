@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	SetLogger(log.New(os.Stderr, "jpegq-test", log.Ltime|log.Lshortfile))
+	SetLogger(log.New(os.Stderr, "test-", log.Ltime|log.Lshortfile))
 }
 
 func TestJpegQuality(t *testing.T) {
