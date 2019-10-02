@@ -14,7 +14,7 @@ func main() {
 		return
 	}
 
-	jpegquality.SetLogger(log.New(os.Stderr, "jpegq", log.LstdFlags|log.Lshortfile))
+	jpegquality.SetLogger(log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile))
 
 	file, err := os.Open(os.Args[1])
 	if err != nil {
