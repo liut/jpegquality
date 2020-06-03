@@ -8,7 +8,7 @@ import (
 
 // Errors
 var (
-	ErrInvalidJPEG  = errors.New("Invalid JPEG content")
+	ErrInvalidJPEG  = errors.New("Invalid JPEG header")
 	ErrWrongTable   = errors.New("ERROR: Wrong size for quantization table")
 	ErrShortSegment = errors.New("short segment length")
 	ErrShortDQT     = errors.New("DQT section too short")
@@ -94,6 +94,7 @@ func New(rs io.ReadSeeker) (qr Qualitier, err error) {
 	}
 	if sign[0] != 0xff && sign[1] != 0xd8 {
 		err = ErrInvalidJPEG
+		GetLogger().Print(err)
 		return
 	}
 
@@ -110,6 +111,7 @@ func (jr *jpegReader) readQuality() (q int, err error) {
 		mark := jr.readMarker()
 		if mark == 0 {
 			err = ErrInvalidJPEG
+			GetLogger().Print(err)
 			return
 		}
 		var (
@@ -155,7 +157,7 @@ func (jr *jpegReader) readQuality() (q int, err error) {
 		}
 		GetLogger().Printf("read bytes %d", n)
 
-		var allones int = 1
+		allones := 1
 		var cumsf, cumsf2 float64
 		buf := tabuf[0:n]
 
