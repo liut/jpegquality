@@ -155,7 +155,7 @@ func (jr *jpegReader) readQuality() (q int, err error) {
 		}
 		GetLogger().Printf("read bytes %d", n)
 
-		var allones int
+		var allones int = 1
 		var cumsf, cumsf2 float64
 		buf := tabuf[0:n]
 
