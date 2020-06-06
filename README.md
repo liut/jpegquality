@@ -1,5 +1,7 @@
 # Detect JPEG quality from bytes or io.ReadSeeker (like os.File)
 
+[![Build Status](https://travis-ci.org/liut/jpegquality.svg?branch=master)](https://travis-ci.org/liut/jpegquality)
+
 Inpiration from [Estimating Quality](http://fotoforensics.com/tutorial-estq.php).
 
 Fixed bug base on HuangYeWuDeng [ttys3/jpegquality](https://github.com/ttys3/jpegquality/commit/6176ce2bb32baad02c5b3dcd977dbc2eab406312).
