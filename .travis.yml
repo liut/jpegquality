@@ -1,0 +1,16 @@
+sudo: false
+language: go
+go:
+  - 1.x
+  - tip
+
+matrix:
+    fast_finish: true
+    allow_failures:
+        - go: tip
+
+go_import_path: github.com/liut/jpegquality
+
+script:
+  - go vet ./...
+  - go test -cover -race -v .
