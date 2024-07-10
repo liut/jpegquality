@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log/slog"
 )
 
 // Errors
@@ -16,7 +17,7 @@ var (
 
 // Fixed bug base on HuangYeWuDeng [ttys3/jpegquality](https://github.com/ttys3/jpegquality/commit/6176ce2bb32baad02c5b3dcd977dbc2eab406312)
 
-//idct.go
+// idct.go
 const blockSize = 64 // A DCT block is 8x8.
 
 type block [blockSize]int32
@@ -94,7 +95,7 @@ func New(rs io.ReadSeeker) (qr Qualitier, err error) {
 	}
 	if sign[0] != 0xff && sign[1] != 0xd8 {
 		err = ErrInvalidJPEG
-		GetLogger().Print(err)
+		slog.Info("invaild jpeg", "sign", sign)
 		return
 	}
 
@@ -111,7 +112,7 @@ func (jr *jpegReader) readQuality() (q int, err error) {
 		mark := jr.readMarker()
 		if mark == 0 {
 			err = ErrInvalidJPEG
-			GetLogger().Print(err)
+			slog.Info("invaild jpeg", "mark", mark)
 			return
 		}
 		var (
@@ -121,7 +122,7 @@ func (jr *jpegReader) readQuality() (q int, err error) {
 		)
 		_, err = jr.rs.Read(sign)
 		if err != nil {
-			GetLogger().Printf("read err %s", err)
+			slog.Info("read fail", "err", err)
 			return
 		}
 
@@ -134,28 +135,28 @@ func (jr *jpegReader) readQuality() (q int, err error) {
 		if (mark & 0xff) != dqtMarker { // not a quantization table
 			_, err = jr.rs.Seek(int64(length), 1)
 			if err != nil {
-				GetLogger().Printf("seek err %s", err)
+				slog.Info("seek fail", "err", err)
 				return
 			}
 			continue
 		}
 
 		if length%65 != 0 {
-			GetLogger().Printf("ERROR: Wrong size for quantization table -- this contains %d bytes (%d bytes short or %d bytes long)\n", length, 65-length%65, length%65)
+			slog.Warn("Wrong size for quantization table", "length", length)
 			err = ErrWrongTable
 			return
 		}
 
-		GetLogger().Printf("Quantization table length %d", length)
+		slog.Debug("Quantization table", "length", length)
 
 		var tabuf = make([]byte, length)
 		var n int
 		n, err = jr.rs.Read(tabuf)
 		if err != nil {
-			GetLogger().Printf("read err %s", err)
+			slog.Info("read fail", "err", err)
 			return
 		}
-		GetLogger().Printf("read bytes %d", n)
+		slog.Debug("read", "bytes", n)
 
 		allones := 1
 		var cumsf, cumsf2 float64
@@ -172,15 +173,16 @@ func (jr *jpegReader) readQuality() (q int, err error) {
 			if int8(buf[0])>>4 != 0 {
 				precision = 16
 			}
-			GetLogger().Printf("DQT: table index %d (%s), precision: %d\n", tableindex, getTableName(tableindex), precision)
+			slog.Debug("DQT: table", "index", tableindex,
+				"name", getTableName(tableindex), "precision", precision)
 
 			if tableindex < 2 {
 				reftable = deftabs[tableindex]
 			}
 			// Read in the table, compute statistics relative to reference table
 			if a+64 > n {
+				slog.Info("short DQT", "a", a)
 				err = ErrShortDQT
-				GetLogger().Print(err)
 				return
 			}
 			for coefindex := 0; coefindex < 64 && a < n; coefindex++ {
@@ -219,11 +221,11 @@ func (jr *jpegReader) readQuality() (q int, err error) {
 				} else {
 					qual = 5000.0 / cumsf
 				}
-				GetLogger().Printf("tbl %d: %8.4f %9.4f %7.4f", tableindex, cumsf, cumsf2, qual)
+				slog.Debug("tbl", "index", tableindex, "cumsf", cumsf, "cumsf2", cumsf2, "qual", qual)
 
 				if tableindex == 0 {
 					q = (int)(qual + 0.5)
-					GetLogger().Printf("aver_quality %#v", q)
+					slog.Debug("aver_quality", "q", q)
 					return
 				}
 			}

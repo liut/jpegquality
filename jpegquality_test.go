@@ -2,13 +2,14 @@ package jpegquality
 
 import (
 	"encoding/base64"
-	"log"
+	"log/slog"
 	"os"
 	"testing"
 )
 
 func init() {
-	SetLogger(log.New(os.Stderr, "test-", log.Ltime|log.Lshortfile))
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	slog.SetDefault(logger)
 }
 
 func TestJpegQuality(t *testing.T) {
