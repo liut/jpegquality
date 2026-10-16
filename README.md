@@ -111,8 +111,11 @@ jpegq myphoto.jpg
 ```
 
 ## Custom logger for debug
+
+The package logs through `log/slog`'s default logger. To see the quantization table details, set a default handler at debug level:
+
 ```go
 
-jpegquality.SetLogger(log.New(os.Stderr, "jpegq", log.LstdFlags|log.Lshortfile))
+slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})))
 
 ```
