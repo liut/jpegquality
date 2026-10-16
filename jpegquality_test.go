@@ -60,6 +60,9 @@ func decodeFixture(t *testing.T, s string) []byte {
 func TestJpegQualityResync(t *testing.T) {
 	base := decodeFixture(t, jpegData1)
 	const dqt = 0x14 // offset of DQT: SOI(2) + APP0 marker and 16-byte segment
+	if base[dqt] != 0xff || base[dqt+1] != dqtMarker {
+		t.Fatalf("fixture: DQT marker not at %#x", dqt)
+	}
 
 	// ins returns a new slice with x inserted before DQT.
 	ins := func(x []byte) []byte {
@@ -110,9 +113,9 @@ func TestJpegQualityResync(t *testing.T) {
 	}
 	for _, c := range errCases {
 		t.Run(c.name, func(t *testing.T) {
-			q, err := NewWithBytes(c.in)
+			_, err := NewWithBytes(c.in)
 			if !errors.Is(err, ErrInvalidJPEG) {
-				t.Fatalf("want ErrInvalidJPEG, got quality %v, err %v", q, err)
+				t.Fatalf("want ErrInvalidJPEG, got err %v", err)
 			}
 		})
 	}
@@ -123,17 +126,17 @@ func TestJpegQualityRejectsBadSOI(t *testing.T) {
 
 	t.Run("FF then not D8", func(t *testing.T) {
 		in := append([]byte{0xff, 0x00}, rest...)
-		q, err := NewWithBytes(in)
+		_, err := NewWithBytes(in)
 		if !errors.Is(err, ErrInvalidJPEG) {
-			t.Fatalf("want ErrInvalidJPEG, got quality %v, err %v", q, err)
+			t.Fatalf("want ErrInvalidJPEG, got err %v", err)
 		}
 	})
 
 	t.Run("D8 without FF", func(t *testing.T) {
 		in := append([]byte{0x00, 0xd8}, rest...)
-		q, err := NewWithBytes(in)
+		_, err := NewWithBytes(in)
 		if !errors.Is(err, ErrInvalidJPEG) {
-			t.Fatalf("want ErrInvalidJPEG, got quality %v, err %v", q, err)
+			t.Fatalf("want ErrInvalidJPEG, got err %v", err)
 		}
 	})
 }
