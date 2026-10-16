@@ -93,7 +93,7 @@ func New(rs io.ReadSeeker) (qr Qualitier, err error) {
 	if err != nil {
 		return
 	}
-	if sign[0] != 0xff && sign[1] != 0xd8 {
+	if sign[0] != 0xff || sign[1] != 0xd8 {
 		err = ErrInvalidJPEG
 		slog.Info("invaild jpeg", "sign", sign)
 		return
