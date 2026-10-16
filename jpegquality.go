@@ -93,7 +93,7 @@ func New(rs io.ReadSeeker) (qr Qualitier, err error) {
 	if err != nil {
 		return
 	}
-	if sign[0] != 0xff && sign[1] != 0xd8 {
+	if sign[0] != 0xff || sign[1] != 0xd8 {
 		err = ErrInvalidJPEG
 		slog.Info("invaild jpeg", "sign", sign)
 		return
@@ -242,22 +242,27 @@ func getTableName(index int) string {
 }
 
 func (jr *jpegReader) readMarker() int {
-	var (
-		mark = make([]byte, 2)
-		err  error
-	)
-
-ReadAgain:
-	_, err = jr.rs.Read(mark)
-	if err != nil {
-		return 0
+	b := make([]byte, 1)
+	// Skip garbage and fill bytes with the same rules as libjpeg's next_marker.
+	for {
+		// Discard bytes up to the next 0xFF.
+		for b[0] != 0xff {
+			if _, err := io.ReadFull(jr.rs, b); err != nil {
+				return 0
+			}
+		}
+		// Skip any run of 0xFF fill bytes.
+		for b[0] == 0xff {
+			if _, err := io.ReadFull(jr.rs, b); err != nil {
+				return 0
+			}
+		}
+		// 0xFF00 is a stuffed byte, not a marker; resume scanning.
+		if b[0] == 0x00 {
+			continue
+		}
+		return 0xff<<8 | int(b[0])
 	}
-	if mark[0] != 0xff || mark[1] == 0xff || mark[1] == 0x00 {
-		goto ReadAgain
-	}
-
-	// GetLogger().Printf("get marker %x", mark)
-	return int(mark[0])<<8 + int(mark[1])
 }
 
 func (jr *jpegReader) Quality() int {

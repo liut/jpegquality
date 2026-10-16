@@ -2,6 +2,7 @@ package jpegquality
 
 import (
 	"encoding/base64"
+	"errors"
 	"log/slog"
 	"os"
 	"testing"
@@ -45,6 +46,99 @@ func TestJpegQuality(t *testing.T) {
 		}
 	}
 
+}
+
+func decodeFixture(t *testing.T, s string) []byte {
+	t.Helper()
+	buf, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return buf
+}
+
+func TestJpegQualityResync(t *testing.T) {
+	base := decodeFixture(t, jpegData1)
+	const dqt = 0x14 // offset of DQT: SOI(2) + APP0 marker and 16-byte segment
+	if base[dqt] != 0xff || base[dqt+1] != dqtMarker {
+		t.Fatalf("fixture: DQT marker not at %#x", dqt)
+	}
+
+	// ins returns a new slice with x inserted before DQT.
+	ins := func(x []byte) []byte {
+		out := make([]byte, 0, len(base)+len(x))
+		out = append(out, base[:dqt]...)
+		out = append(out, x...)
+		return append(out, base[dqt:]...)
+	}
+	// trunc returns the bytes before DQT followed by x, with nothing after.
+	trunc := func(x []byte) []byte {
+		out := make([]byte, 0, dqt+len(x))
+		out = append(out, base[:dqt]...)
+		return append(out, x...)
+	}
+	short := append([]byte(nil), base...)
+	short[4], short[5] = 0x00, 0x0f // APP0 length one byte short
+
+	okCases := []struct {
+		name string
+		in   []byte
+	}{
+		{"odd garbage", ins([]byte{0x20, 0x21, 0x22})},
+		{"even garbage", ins([]byte{0x20, 0x20, 0x20, 0x20})},
+		{"single fill byte", ins([]byte{0xff})},
+		{"stuffed FF00 in garbage", ins([]byte{0x20, 0xff, 0x00})},
+		{"APP0 length short by one", short},
+	}
+	for _, c := range okCases {
+		t.Run(c.name, func(t *testing.T) {
+			q, err := NewWithBytes(c.in)
+			if err != nil {
+				t.Fatalf("want quality 76, got err %v", err)
+			}
+			if got := q.Quality(); got != 76 {
+				t.Fatalf("want quality 76, got %d", got)
+			}
+		})
+	}
+
+	errCases := []struct {
+		name string
+		in   []byte
+	}{
+		{"EOF after garbage", trunc([]byte{0x20, 0x21, 0x22})},
+		{"EOF after lone FF", trunc([]byte{0x20, 0xff})},
+		{"EOF after fill bytes", trunc([]byte{0x20, 0xff, 0xff})},
+		{"EOF after FF00", trunc([]byte{0x20, 0xff, 0x00})},
+	}
+	for _, c := range errCases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := NewWithBytes(c.in)
+			if !errors.Is(err, ErrInvalidJPEG) {
+				t.Fatalf("want ErrInvalidJPEG, got err %v", err)
+			}
+		})
+	}
+}
+
+func TestJpegQualityRejectsBadSOI(t *testing.T) {
+	rest := decodeFixture(t, jpegData1)[2:]
+
+	t.Run("FF then not D8", func(t *testing.T) {
+		in := append([]byte{0xff, 0x00}, rest...)
+		_, err := NewWithBytes(in)
+		if !errors.Is(err, ErrInvalidJPEG) {
+			t.Fatalf("want ErrInvalidJPEG, got err %v", err)
+		}
+	})
+
+	t.Run("D8 without FF", func(t *testing.T) {
+		in := append([]byte{0x00, 0xd8}, rest...)
+		_, err := NewWithBytes(in)
+		if !errors.Is(err, ErrInvalidJPEG) {
+			t.Fatalf("want ErrInvalidJPEG, got err %v", err)
+		}
+	})
 }
 
 const (
